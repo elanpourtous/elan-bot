@@ -1,5 +1,3 @@
-// server.js - avec OpenAI, version robuste
-
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -12,59 +10,74 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Route de santé
-app.get("/", (req, res) => {
-  res.send("✅ Élan-bot est en ligne avec OpenAI.");
-});
-
-// 🔑 On vérifie la clé AVANT de lancer le client
-if (!process.env.OPENAI_API_KEY) {
-  console.error("❌ OPENAI_API_KEY manquante. Définis-la dans Render > Environment.");
-}
-
+// ✅ Client OpenAI
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Petite route de santé
+app.get("/", (req, res) => {
+  res.send("✅ Élan-bot est en ligne avec OpenAI.");
+});
+
+// Route principale de chat
 app.post("/chat", async (req, res) => {
   const { message } = req.body || {};
-  console.log("Message reçu :", message);
 
   if (!message) {
-    return res.status(400).json({ error: "Message manquant" });
+    return res.status(400).json({ error: "Message manquant." });
   }
 
   if (!process.env.OPENAI_API_KEY) {
     return res.status(500).json({
       error:
-        "OPENAI_API_KEY n’est pas configurée côté serveur. Contactez l’admin (Patrick 😎).",
+        "Clé OpenAI absente côté serveur. Contactez l’administrateur (Patrick 😉).",
     });
   }
 
   try {
-    const response = await client.chat.completions.create({
+    const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
+      temperature: 0.4,
+      max_tokens: 500,
       messages: [
         {
           role: "system",
-          content:
-            "Tu es l’assistant d'Élan pour tous. Tu aides les visiteurs à s’orienter, à comprendre les formations et à poser des questions sur le handicap et l’inclusion.",
+          content: `
+Tu es **Tom Élan**, assistant virtuel d’“Élan pour tous”, structure basée à Saumur.
+
+Tu aides les personnes à :
+- comprendre les formations, ateliers et accompagnements proposés,
+- poser des questions sur le handicap, l’accessibilité numérique, l’adaptation de postes,
+- s’orienter (tests de compétences, diagnostics, besoins),
+- mieux comprendre les démarches (mais tu ne remplaces pas un médecin, un avocat ou un travailleur social).
+
+Règles :
+- Réponds en **français**, avec un ton simple, bienveillant et concret.
+- Quand c’est utile, propose une formulation plus simple façon **FALC** (facile à lire et à comprendre).
+- Tu peux suggérer la page **Contact** du site ou l’email **elanpourtous49@gmail.com** pour aller plus loin.
+- Ne donne pas de conseils médicaux ou juridiques précis : oriente vers les professionnels.
+        `.trim(),
         },
         { role: "user", content: message },
       ],
     });
 
-    const reply = response.choices?.[0]?.message?.content || "Je n’ai pas de réponse pour le moment.";
+    const reply =
+      completion.choices?.[0]?.message?.content ||
+      "Je suis là, mais je n’ai pas réussi à formuler une réponse. Tu peux reformuler ou utiliser la page Contact.";
+
     res.json({ reply });
   } catch (err) {
-    console.error("❌ Erreur OpenAI :", err);
+    console.error("Erreur OpenAI :", err);
     res.status(500).json({
-      error: "Erreur lors de l’appel à l’API OpenAI.",
+      error:
+        "Erreur interne du bot. Réessaie plus tard ou utilise la page Contact.",
     });
   }
 });
 
 const port = process.env.PORT || 10000;
 app.listen(port, () => {
-  console.log(`🤖 Bot Élan pour tous lancé sur le port ${port}`);
+  console.log(`🤖 Bot Élan pour tous (avec OpenAI) prêt sur le port ${port}`);
 });

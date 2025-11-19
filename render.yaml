@@ -1,0 +1,14 @@
+# Élan Bot - Render Blueprint
+services:
+  - type: web
+    name: elan-bot
+    env: node
+    region: oregon
+    plan: free
+    repo: https://github.com/elanpourtous/elan-bot
+    branch: main
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false

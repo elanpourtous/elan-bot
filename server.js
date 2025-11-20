@@ -1,10 +1,9 @@
-// server.js - avec OpenAI, version robuste
+// server.js — Bot Élan pour tous (mode démo, sans IA)
 
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import dotenv from "dotenv";
-import OpenAI from "openai";
 
 dotenv.config();
 
@@ -12,59 +11,56 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Route de santé
+// Petit test de vie
 app.get("/", (req, res) => {
-  res.send("✅ Élan-bot est en ligne avec OpenAI.");
+  res.send("Tom Élan — bot démo sans IA est en ligne ✅");
 });
 
-// 🔑 On vérifie la clé AVANT de lancer le client
-if (!process.env.OPENAI_API_KEY) {
-  console.error("❌ OPENAI_API_KEY manquante. Définis-la dans Render > Environment.");
-}
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-app.post("/chat", async (req, res) => {
-  const { message } = req.body || {};
-  console.log("Message reçu :", message);
+// Route principale du chat
+app.post("/chat", (req, res) => {
+  const message = (req.body?.message || "").trim();
 
   if (!message) {
-    return res.status(400).json({ error: "Message manquant" });
+    return res.status(400).json({ error: "Message manquant dans la requête." });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(500).json({
-      error:
-        "OPENAI_API_KEY n’est pas configurée côté serveur. Contactez l’admin (Patrick 😎).",
-    });
+  const lower = message.toLowerCase();
+  let reply = "";
+
+  // Quelques réponses “intelligentes” mais locales
+  if (/(bonjour|salut|hello|coucou)/.test(lower)) {
+    reply =
+      "Bonjour, je suis Tom Elan, l’assistant d’Élan pour tous (version démo sans IA). " +
+      "Je peux t’indiquer où trouver les formations, l’orientation ou la page de contact.";
+  } else if (/formation|atelier|test|bilan/.test(lower)) {
+    reply =
+      "Tu as une question sur les formations ou les ateliers. " +
+      "Sur le site, regarde la page « Formations » ou « Orientation & tests ». " +
+      "Si tu veux une réponse adaptée à ta situation, passe par la page Contact.";
+  } else if (/handicap|accessib|rgaa|malvoyant|dys|pmr/.test(lower)) {
+    reply =
+      "Tu parles d’accessibilité ou de handicap. " +
+      "Chez Élan pour tous, on peut adapter le rythme, les supports (FALC, lecteurs d’écran, dictée vocale, etc.). " +
+      "Le mieux est d’expliquer ta situation dans le formulaire de contact pour qu’on puisse proposer quelque chose sur-mesure.";
+  } else if (/contact|email|téléphone|telephone|appel/.test(lower)) {
+    reply =
+      "Pour nous joindre :\n" +
+      "- Email : elanpourtous49@gmail.com\n" +
+      "- Téléphone : 07 83 33 67 57\n" +
+      "- Ou directement via la page « Contact » du site.";
+  } else {
+    // Réponse générique
+    reply =
+      `Tu m’as envoyé : « ${message} ».\n\n` +
+      "Je suis la version démo de Tom (sans IA connectée pour l’instant). " +
+      "Pour une vraie réponse personnalisée, utilise la page Contact du site ou envoie un email à elanpourtous49@gmail.com.";
   }
 
-  try {
-    const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Tu es l’assistant d'Élan pour tous. Tu aides les visiteurs à s’orienter, à comprendre les formations et à poser des questions sur le handicap et l’inclusion.",
-        },
-        { role: "user", content: message },
-      ],
-    });
-
-    const reply = response.choices?.[0]?.message?.content || "Je n’ai pas de réponse pour le moment.";
-    res.json({ reply });
-  } catch (err) {
-    console.error("❌ Erreur OpenAI :", err);
-    res.status(500).json({
-      error: "Erreur lors de l’appel à l’API OpenAI.",
-    });
-  }
+  return res.json({ reply });
 });
 
+// Port local ou Render
 const port = process.env.PORT || 10000;
 app.listen(port, () => {
-  console.log(`🤖 Bot Élan pour tous lancé sur le port ${port}`);
+  console.log(`🤖 Bot Élan pour tous (mode démo, sans IA) sur le port ${port}`);
 });
